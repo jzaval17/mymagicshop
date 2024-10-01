@@ -16,6 +16,19 @@ def get_inventory():
     return {"number_of_potions": 0, "ml_in_barrels": 0, "gold": 0}
 
 # Gets called once a day
+
+@router.get("/status")
+def get_inventory_status():
+    with db.engine.begin() as connection:
+        result = connection.execute(text("SELECT num_green_potions, num_green_ml, gold FROM global_inventory LIMIT 1"))
+        inventory = result.fetchone()
+
+        return {
+            "green_potions": inventory.num_green_potions,
+            "green_ml": inventory.num_green_ml,
+            "gold": inventory.gold
+        }
+
 @router.post("/plan")
 def get_capacity_plan():
     """ 

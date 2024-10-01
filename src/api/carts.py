@@ -1,3 +1,5 @@
+import sqlalchemy
+from src import database as db
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from src.api import auth
@@ -104,6 +106,19 @@ class CartCheckout(BaseModel):
 
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
-    """ """
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT num_green_potions, gold FROM global_inventory WHERE id = 1"))
+        inventory = result.fetchone()
+        num_green_potions = inventory.num_green_potions
+        potion_price = 50  # Assume each green potion costs 50 gold
 
-    return {"total_potions_bought": 1, "total_gold_paid": 50}
+        if num_green_potions > 0:
+            # Deduct potion and add gold
+            connection.execute(sqlalchemy.text(f"""
+                UPDATE global_inventory
+                SET num_green_potions = num_green_potions - 1, gold = gold + {potion_price}
+                WHERE id = 1
+            """))
+            return {"status": "Success", "message": "Potion sold", "total_gold_paid": potion_price}
+        else:
+            return {"status": "Failure", "message": "Not enough potions in stock"}
